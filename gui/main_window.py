@@ -4,7 +4,7 @@ Main window Setup and Configuration for File Transfer GUI
 
 import customtkinter as ctk
 from .send_tab import SendTab
-# from .receive_tab import ReceiveTab
+from .receive_tab import ReceiveTab
 
 
 class FileTransferApp:
@@ -44,7 +44,7 @@ class FileTransferApp:
 
         # Initialize tab content
         self.send_tab = SendTab(self.tab_view.tab("Send File"), self.root)
-        # self.receive_tab = ReceiveTab(self.tab_view.tab("Receive File"), self.root)
+        self.receive_tab = ReceiveTab(self.tab_view.tab("Receive File"), self.root)
     
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
