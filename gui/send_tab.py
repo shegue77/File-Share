@@ -37,3 +37,129 @@ class SendTab:
             wraplength=400,
         )
         self.file_path_label.pack(pady=5)
+
+        # Browse button
+        self.browse_button = ctk.CTkButton(
+            file_section,
+            text="Browse Files",
+            command=self.browse_file,
+            height=35
+        )
+        self.browse_button.pack(pady=(10, 15))
+
+        # Connection section
+        conn_section = ctk.CTkFrame(self.parent)
+        conn_section.pack(fill="x", padx=20, pady=10)
+
+        ctk.CTkLabel(
+            conn_section,
+            text="Connection Settings",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(pady=(15, 10))
+
+        # Host input
+        host_frame = ctk.CTkFrame(conn_section)
+        host_frame.pack(fill="x", padx=20, pady=5)
+
+        ctk.CTkLabel(host_frame, text="Host:").pack(side="left", padx=(10, 5))
+        self.host_entry = ctk.CTkEntry(host_frame, placeholder_text="Enter host address")
+        self.host_entry.pack(side="left", fill="x", expand=True, padx=5)
+        self.host_entry.insert(0, "localhost")
+
+        # Port input
+        port_frame = ctk.CTkFrame(conn_section)
+        port_frame.pack(fill="x", padx=20, pady=5)
+
+        ctk.CTkLabel(port_frame, text="Port:").pack(side="left", padx=(10, 5))
+        self.host_entry = ctk.CTkEntry(port_frame, placeholder_text="9999", width=100)
+        self.host_entry.pack(side="left", fill="x", expand=True, padx=5)
+        self.host_entry.insert(0, "9999")
+
+        # Destination filename input
+        dest_frame = ctk.CTkFrame(conn_section)
+        dest_frame.pack(fill="x", padx=20, pady=(5, 15))
+
+        ctk.CTkLabel(dest_frame, text="Destination Filename:").pack(side="left", padx=(10, 5))
+        self.host_entry = ctk.CTkEntry(dest_frame, placeholder_text="Enter filenamae")
+        self.host_entry.pack(side="left", fill="x", expand=True, padx=5)
+        self.host_entry.insert(0, "localhost")
+
+        # Send button
+        self.send_button = ctk.CTkButton(
+            self.parent,
+            text="Send File",
+            command=self.send_file,
+            height=40,
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        self.send_button.pack(pady=20)
+
+        # Status label for sending
+        self.send_status_var = tk.StringVar(value="Ready to send")
+        self.send_status_label = ctk.CTkLabel(
+            self.parent,
+            textvariable=self.send_status_var,
+            text_color="gray",
+            font=ctk.CTkFont(size=12)
+        )
+        self.send_status_label.pack(pady=5)
+    
+    def browse_file(self):
+        file_path = filedialog.askopenfilename(
+            title="Select a file to send",
+            filetypes=[("All Files", "*.*")]
+        )
+        if file_path:
+            self.selected_file = file_path
+            self.file_path_var.set(f"Selected file: {os.path.basename(file_path)}")
+            # Auto fill destination filename
+            if not self.dest_filename_entry.get():
+                self.dest_filename_entry.insert(0, os.path.basename(file_path))
+
+    def send_file(self):
+        if not self.selected_file:
+            messagebox.showerror("Error", "Please select a file to send.")
+            return
+
+        if not self.dest_filename_entry.get().strip():
+            messagebox.showerror("Error", "Please enter a destination filename.")
+            return
+
+        # Disable the send button during transfer
+        self.send_button.configure(state="disabled")
+        self.send_status_var.set("Sending file...")
+
+        # Start the file sending in a separate thread
+        threading.Thread(
+            target=self._send_file_thread,
+            daemon=True
+        ).start()
+
+        def _send_file_thread(self):
+            try:
+                host = self.host_entry.get() or "localhost"
+                port = int(self.port_entry.get() or 9999)
+                dest_filename = self.dest_filename_entry.get().strip()
+
+                # Set up progress callback
+                def progress_callback(progress):
+                    self.root.after(0, lambda p=progress: self.send_status_var.set(f"Sending... {p:.1f}%"))
+
+                # Send the file
+                self.sender.send_file(
+                    self.selected_file,
+                    host,
+                    port,
+                    dest_filename,
+                    progress_callback
+                )
+
+                # Update UI on success
+                self.root.after(0, lambda: self.send_status_var.set("File sent successfully!"))
+                self.root.after(0, lambda: messagebox.showinfo("Success", f"File sent successfully as '{dest_filename}'"))
+
+            except Exception as e:
+                self.root.after(0, lambda: self.send_status_var.set(f"Error: {str(e)}"))
+                self.root.after(0, lambda: messagebox.showerror("Error", f"Failed to send file: {str(e)}"))
+            finally:
+                self.root.after(0, lambda: self.send_btn.configure(state="normal"))
