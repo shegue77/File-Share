@@ -8,14 +8,14 @@ from tkinter import filedialog, messagebox
 import os
 import threading
 import time
-# from network.receiver import FileReceiver
+from network.receiver import FileReceiver
 
 class ReceiveTab:
     pass
     def __init__(self, parent, root):
         self.parent = parent
         self.root = root
-        # self.receiver = FileReceiver()
+        self.receiver = FileReceiver()
 
         self.setup_ui()
 
@@ -115,12 +115,12 @@ class ReceiveTab:
             
             def ui_callback(action, state=None):
                 if action == "server_started":
-                    self.root.after(0, lambda: self.start_server_btn.configure(state="disabled"))
-                    self.root.after(0, lambda: self.stop_server_btn.configure(state="normal"))
+                    self.root.after(0, lambda: self.start_server_button.configure(state="disabled"))
+                    self.root.after(0, lambda: self.stop_server_button.configure(state="normal"))
 
                 elif action == "server_stopped":
-                    self.root.after(0, lambda: self.start_server_btn.configure(state="normal"))
-                    self.root.after(0, lambda: self.stop_server_btn.configure(state="disabled"))
+                    self.root.after(0, lambda: self.start_server_button.configure(state="normal"))
+                    self.root.after(0, lambda: self.stop_server_button.configure(state="disabled"))
             
             # Start receiver
             self.receiver.start_receiving(

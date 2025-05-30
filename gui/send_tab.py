@@ -7,14 +7,14 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
 import threading
-# from network.sender import FileSender
+from network.sender import FileSender
 
 class SendTab:
     def __init__(self, parent, root):
         self.parent = parent
         self.root = root
         self.selected_file = None
-        self.sender = None
+        self.sender = FileSender()  # Initialize FileSender
 
         self.setup_ui()
 
@@ -71,18 +71,17 @@ class SendTab:
         port_frame.pack(fill="x", padx=20, pady=5)
 
         ctk.CTkLabel(port_frame, text="Port:").pack(side="left", padx=(10, 5))
-        self.host_entry = ctk.CTkEntry(port_frame, placeholder_text="9999", width=100)
-        self.host_entry.pack(side="left", fill="x", expand=True, padx=5)
-        self.host_entry.insert(0, "9999")
+        self.port_entry = ctk.CTkEntry(port_frame, placeholder_text="9999", width=100)
+        self.port_entry.pack(side="left", fill="x", expand=True, padx=5)
+        self.port_entry.insert(0, "9999")
 
         # Destination filename input
         dest_frame = ctk.CTkFrame(conn_section)
         dest_frame.pack(fill="x", padx=20, pady=(5, 15))
 
         ctk.CTkLabel(dest_frame, text="Destination Filename:").pack(side="left", padx=(10, 5))
-        self.host_entry = ctk.CTkEntry(dest_frame, placeholder_text="Enter filenamae")
-        self.host_entry.pack(side="left", fill="x", expand=True, padx=5)
-        self.host_entry.insert(0, "localhost")
+        self.dest_filename_entry = ctk.CTkEntry(dest_frame, placeholder_text="Enter filename")
+        self.dest_filename_entry.pack(side="left", fill="x", expand=True, padx=5)
 
         # Send button
         self.send_button = ctk.CTkButton(
@@ -112,9 +111,9 @@ class SendTab:
         if file_path:
             self.selected_file = file_path
             self.file_path_var.set(f"Selected file: {os.path.basename(file_path)}")
-            # Auto fill destination filename
-            if not self.dest_filename_entry.get():
-                self.dest_filename_entry.insert(0, os.path.basename(file_path))
+            # Always set destination filename to the selected file's basename (with extension)
+            self.dest_filename_entry.delete(0, 'end')
+            self.dest_filename_entry.insert(0, os.path.basename(file_path))
 
     def send_file(self):
         if not self.selected_file:
@@ -135,31 +134,31 @@ class SendTab:
             daemon=True
         ).start()
 
-        def _send_file_thread(self):
-            try:
-                host = self.host_entry.get() or "localhost"
-                port = int(self.port_entry.get() or 9999)
-                dest_filename = self.dest_filename_entry.get().strip()
+    def _send_file_thread(self):
+        try:
+            host = self.host_entry.get() or "localhost"
+            port = int(self.port_entry.get() or 9999)
+            dest_filename = self.dest_filename_entry.get().strip()
 
-                # Set up progress callback
-                def progress_callback(progress):
-                    self.root.after(0, lambda p=progress: self.send_status_var.set(f"Sending... {p:.1f}%"))
+            # Set up progress callback
+            def progress_callback(progress):
+                self.root.after(0, lambda p=progress: self.send_status_var.set(f"Sending... {p:.1f}%"))
 
-                # Send the file
-                self.sender.send_file(
-                    self.selected_file,
-                    host,
-                    port,
-                    dest_filename,
-                    progress_callback
-                )
+            # Send the file
+            self.sender.send_file(
+                self.selected_file,
+                host,
+                port,
+                dest_filename,
+                progress_callback
+            )
 
-                # Update UI on success
-                self.root.after(0, lambda: self.send_status_var.set("File sent successfully!"))
-                self.root.after(0, lambda: messagebox.showinfo("Success", f"File sent successfully as '{dest_filename}'"))
+            # Update UI on success
+            self.root.after(0, lambda: self.send_status_var.set("File sent successfully!"))
+            self.root.after(0, lambda: messagebox.showinfo("Success", f"File sent successfully as '{dest_filename}'"))
 
-            except Exception as e:
-                self.root.after(0, lambda: self.send_status_var.set(f"Error: {str(e)}"))
-                self.root.after(0, lambda: messagebox.showerror("Error", f"Failed to send file: {str(e)}"))
-            finally:
-                self.root.after(0, lambda: self.send_btn.configure(state="normal"))
+        except Exception as e:
+            self.root.after(0, lambda: self.send_status_var.set(f"Error: {str(e)}"))
+            self.root.after(0, lambda: messagebox.showerror("Error", f"Failed to send file: {str(e)}"))
+        finally:
+            self.root.after(0, lambda: self.send_button.configure(state="normal"))
