@@ -4,3 +4,5 @@ sender_files/
 receiver_files/
 dir_structure.txt
 test.py
+gui/__pycache__/
+network/__pycache__/
