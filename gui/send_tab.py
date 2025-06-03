@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox
 import os
 import threading
 from network.sender import FileSender
+from utils.helpers import discover_file_server_ip
 
 class SendTab:
     def __init__(self, parent, root):
@@ -62,9 +63,9 @@ class SendTab:
         host_frame.pack(fill="x", padx=20, pady=5)
 
         ctk.CTkLabel(host_frame, text="Host:").pack(side="left", padx=(10, 5))
-        self.host_entry = ctk.CTkEntry(host_frame, placeholder_text="Enter host address")
+        self.host_entry = ctk.CTkEntry(host_frame, placeholder_text="Enter host address (or 'auto' for discovery)")
         self.host_entry.pack(side="left", fill="x", expand=True, padx=5)
-        self.host_entry.insert(0, "localhost")
+        self.host_entry.insert(0, "auto")
 
         # Port input
         port_frame = ctk.CTkFrame(conn_section)
@@ -136,13 +137,24 @@ class SendTab:
 
     def _send_file_thread(self):
         try:
-            host = self.host_entry.get() or "localhost"
+            host = self.host_entry.get().strip() or "auto"
             port = int(self.port_entry.get() or 9999)
             dest_filename = self.dest_filename_entry.get().strip()
 
             # Set up progress callback
             def progress_callback(progress):
                 self.root.after(0, lambda p=progress: self.send_status_var.set(f"Sending... {p:.1f}%"))
+
+            # Auto-discovery visual feedback
+            if host == "auto":
+                self.root.after(0, lambda: self.send_status_var.set("Discovering host on local network..."))
+                discovered_host = discover_file_server_ip()
+                if not discovered_host:
+                    self.root.after(0, lambda: self.send_status_var.set("No file server found on local network."))
+                    self.root.after(0, lambda: self.send_button.configure(state="normal"))
+                    return
+                self.root.after(0, lambda: self.send_status_var.set(f"Discovered host: {discovered_host}"))
+                host = discovered_host
 
             # Send the file
             self.sender.send_file(

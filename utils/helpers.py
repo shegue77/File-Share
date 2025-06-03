@@ -4,6 +4,7 @@ Helper Functions - Common utilities
 
 import os
 import socket
+import time
 
 def format_file_size(size_bytes):
     """
@@ -86,3 +87,53 @@ def safe_filename(filename):
         filename = "unnamed_file"
         
     return filename
+
+def get_local_ip():
+    """
+    Get the local IP address of the machine
+    
+    Returns:
+        Local IP address as string
+    """
+    
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    try:
+        # Doesn't matter if 8.8.8.8 is reachable or not, we just need a valid address
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1" # Fallback to localhost if unable to determine IP
+    finally:
+        s.close()
+    
+    return ip
+
+def discover_file_server_ip(broadcast_port=37020, timeout=2):
+    """
+    Discover file server IP on the local network using UDP broadcast.
+    Returns the discovered IP address as a string, or None if not found.
+    """
+    message = b"DISCOVER_FILE_SERVER"
+    server_ip = None
+    attempts = ["<broadcast>", "192.168.1.255"]  # fallback strategy
+    
+    # Set up UDP socket for broadcast
+    for attempt in attempts:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            s.settimeout(timeout)
+            try:
+                s.sendto(message, (attempt, broadcast_port))
+                # Wait for a response
+                server_ip, _ = s.recvfrom(1024)
+                server_ip = server_ip.decode()
+                break
+            except socket.timeout:
+                continue
+            except Exception:
+                # No response, do not fallback to local IP
+                print(f"[DEBUG] Discovery attempt to {attempt} failed: {e}")
+                server_ip = None
+
+    return server_ip

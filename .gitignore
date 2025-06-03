@@ -6,3 +6,4 @@ dir_structure.txt
 test.py
 gui/__pycache__/
 network/__pycache__/
+utils/__pycache__/

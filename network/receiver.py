@@ -5,6 +5,7 @@ File Receiver - Handles receiving files over network
 import socket
 import threading
 import os
+from utils.helpers import get_local_ip
 
 class FileReceiver:
     def __init__(self):
@@ -12,6 +13,8 @@ class FileReceiver:
         self.is_receiving = False
         self.log_callback = None  # Ensure attribute always exists
         self.ui_callback = None   # Ensure attribute always exists
+        self.udp_discovery_thread = None
+        self.udp_discovery_running = False
 
     def start_receiving(self, port, save_dir, log_callback=None, ui_callback=None):
         """
@@ -49,6 +52,11 @@ class FileReceiver:
         # Start a thread to accept incoming connections
         threading.Thread(target=self._receive_files_thread, daemon=True).start()
 
+        # Start UDP discovery responder
+        self.udp_discovery_running = True
+        self.udp_discovery_thread = threading.Thread(target=self._udp_discovery_responder, args=(port,), daemon=True)
+        self.udp_discovery_thread.start()
+
     def stop_receiving(self):
         """
         Stop the file receiver server
@@ -66,6 +74,10 @@ class FileReceiver:
         if self.ui_callback:
             self.ui_callback("server_stopped", "No longer listening for connections")
         
+        # Stop UDP discovery responder
+        self.udp_discovery_running = False
+        
+
     def _receive_files_thread(self):
         """
         Thread to handle incoming file transfers
@@ -141,3 +153,23 @@ class FileReceiver:
                 break
             line += char
         return line.decode()
+
+    def _udp_discovery_responder(self, tcp_port, broadcast_port=37020):
+        """
+        Listen for UDP broadcast discovery messages and respond with the server's IP address.
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            s.bind(("", broadcast_port))
+            s.settimeout(1)
+            while self.udp_discovery_running:
+                try:
+                    data, addr = s.recvfrom(1024)
+                    if data == b"DISCOVER_FILE_SERVER":
+                        # Respond with our IP address
+                        ip = get_local_ip()
+                        s.sendto(ip.encode(), addr)
+                except socket.timeout:
+                    continue
+                except Exception:
+                    break
