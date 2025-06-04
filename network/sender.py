@@ -29,8 +29,8 @@ class FileSender:
         file_size = os.path.getsize(file_path)
 
         # Auto-discover host if requested
-        if auto_discover and (host == 'auto' or not host or host.strip() == ''):
-            host = discover_file_server_ip()
+        # if auto_discover and (host == 'auto' or not host or host.strip() == ''):
+        #     host = discover_file_server_ip()
 
         # Create socket and connect to the server
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

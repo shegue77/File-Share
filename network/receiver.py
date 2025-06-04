@@ -160,7 +160,7 @@ class FileReceiver:
         """
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            s.bind(("", broadcast_port))
+            s.bind(("", broadcast_port)) # Listen on all ips and the specified broadcast port
             s.settimeout(1)
             while self.udp_discovery_running:
                 try:
