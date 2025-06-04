@@ -37,7 +37,7 @@ class FileReceiver:
         # Create a server socket
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind(("localhost", port))
+        self.server_socket.bind(("0.0.0.0", port))
         self.server_socket.listen()
 
         self.is_receiving = True
@@ -154,7 +154,7 @@ class FileReceiver:
             line += char
         return line.decode()
 
-    def _udp_discovery_responder(self, tcp_port, broadcast_port=37020):
+    def _udp_discovery_responder(self, tcp_port, broadcast_port=9999):
         """
         Listen for UDP broadcast discovery messages and respond with the server's IP address.
         """

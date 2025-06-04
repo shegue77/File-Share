@@ -109,7 +109,7 @@ def get_local_ip():
     
     return ip
 
-def discover_file_server_ip(broadcast_port=37020, timeout=2):
+def discover_file_server_ip(broadcast_port=9999, timeout=2):
     """
     Discover file server IP on the local network using UDP broadcast.
     Returns the discovered IP address as a string, or None if not found.
