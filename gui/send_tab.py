@@ -4,11 +4,11 @@ Send File Tab - UI for sending files
 
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 import os
 import threading
 from network.sender import FileSender
-from utils.helpers import discover_file_server_ip
+from utils.helpers import discover_file_server_ip, discover_all_file_servers
 
 class SendTab:
     def __init__(self, parent, root):
@@ -67,6 +67,16 @@ class SendTab:
         self.host_entry.pack(side="left", fill="x", expand=True, padx=5)
         self.host_entry.insert(0, "auto")
 
+        # Discover host button
+        self.discover_button = ctk.CTkButton(
+            host_frame,
+            text="Discover Hosts",
+            command=self.discover_hosts,
+            width=120
+        )
+
+        self.discover_button.pack(side="left", padx=(10, 0))
+
         # Port input
         port_frame = ctk.CTkFrame(conn_section)
         port_frame.pack(fill="x", padx=20, pady=5)
@@ -103,6 +113,34 @@ class SendTab:
             font=ctk.CTkFont(size=12)
         )
         self.send_status_label.pack(pady=5)
+    
+    def discover_hosts(self):
+        self.send_status_var.set("Scanning for hosts on local network...")
+        def do_discover():
+            hosts = discover_all_file_servers()
+            self.root.after(0, lambda: self.show_host_selection(hosts))
+        threading.Thread(target=do_discover, daemon=True).start()
+
+    def show_host_selection(self, hosts):
+        if not hosts:
+            messagebox.showinfo("No Hosts Found", "No file servers found on the local network.")
+            self.send_status_var.set("No hosts found.")
+            return
+        
+        # Show a simple selection dialog
+        selected = simpledialog.askstring(
+            "Select Host",
+            "Discovered hosts:\n" + "\n".join(hosts) + "\n\nEnter the IP to use:",
+            initialvalue=hosts[0]
+        )
+        if selected and selected in hosts:
+            self.host_entry.delete(0, 'end')
+            self.host_entry.insert(0, selected)
+            self.send_status_var.set(f"Selected host: {selected}")
+        else:
+            self.send_status_var.set("Host selection cancelled.")
+
+
     
     def browse_file(self):
         file_path = filedialog.askopenfilename(

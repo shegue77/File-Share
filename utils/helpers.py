@@ -137,3 +137,32 @@ def discover_file_server_ip(broadcast_port=9999, timeout=2):
                 server_ip = None
 
     return server_ip
+
+def discover_all_file_servers(broadcast_port=9999, timeout=2):
+    """
+    Discover all file servers on the local network using UDP broadcast.
+    Returns a list of discovered IP addresses.
+    """
+    message = b"DISCOVER_FILE_SERVERS"
+    discovered_ips = set()
+    attempts = ["<broadcast>", "192.168.1.255"]
+
+    for attempt in attempts:
+        # Set up UDP socket for broadcast
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            s.settimeout(timeout)
+            
+            try:
+                s.sendto(message, (attempt, broadcast_port))
+                while True:
+                    try:
+                        server_ip, _ = s.recvfrom(1024)
+                        discovered_ips.add(server_ip.decode())
+                    except socket.timeout:
+                        break
+            except Exception as e:
+                print(f"[DEBUG] Discovery failed: {e}")
+                continue
+    
+    return list(discovered_ips)

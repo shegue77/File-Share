@@ -165,7 +165,7 @@ class FileReceiver:
             while self.udp_discovery_running:
                 try:
                     data, addr = s.recvfrom(1024)
-                    if data == b"DISCOVER_FILE_SERVER":
+                    if data == b"DISCOVER_FILE_SERVER" or data == b"DISCOVER_FILE_SERVERS":
                         # Respond with our IP address
                         ip = get_local_ip()
                         s.sendto(ip.encode(), addr)
