@@ -56,18 +56,18 @@ Supports:
 ### 🔧 Installation
 
 1. Clone the repo:
-   git clone https://github.com/your-username/python-file-share.git
-   cd python-file-share
+  git clone https://github.com/asim-builds/File-Share.git
+  cd python-file-share
 
 2. Install dependencies:
-   pip install -r requirements.txt
+  pip install -r requirements.txt
 
 3. Run the app:
-   python main.py
+  python main.py
 
 📦 Packaging (Optional)
 You can convert this into an .exe or standalone app using:
-   pyinstaller --onefile app.py
+  pyinstaller --onefile app.py
 
 🙌 Contributing
 Contributions, bug reports, and feature requests are welcome!
