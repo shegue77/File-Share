@@ -6,7 +6,6 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
-import threading
 import time
 from network.receiver import FileReceiver
 

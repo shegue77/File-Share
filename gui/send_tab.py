@@ -15,7 +15,6 @@ class SendTab:
     def __init__(self, parent, root):
         self.parent = parent
         self.root = root
-        # self.selected_file = None
         self.selected_files = []  # Store multiple selected files
         self.sender = FileSender()  # Initialize FileSender
 
@@ -121,16 +120,6 @@ class SendTab:
         self.send_status_label.pack(pady=5)
 
     def browse_file(self):
-        # file_path = filedialog.askopenfilename(
-        #     title="Select a file to send",
-        #     filetypes=[("All Files", "*.*")]
-        # )
-        # if file_path:
-        #     self.selected_file = file_path
-        #     self.file_path_var.set(f"Selected file: {os.path.basename(file_path)}")
-        #     # Always set destination filename to the selected file's basename (with extension)
-        #     self.dest_filename_entry.delete(0, 'end')
-        #     self.dest_filename_entry.insert(0, os.path.basename(file_path))
         file_paths = filedialog.askopenfilenames(
         title="Select files to send",
         filetypes=[("All Files", "*.*")]
@@ -143,12 +132,6 @@ class SendTab:
             self.dest_filename_entry.insert(0, os.path.basename(file_paths[0]))
 
     def on_drop_files(self, event):
-        # files = self.root.tk.splitlist(event.data)
-        # if files:
-        #     self.selected_file = files[0]
-        #     self.file_path_var.set(f"Selected file: {os.path.basename(files[0])}")
-        #     self.dest_filename_entry.delete(0, 'end')
-        #     self.dest_filename_entry.insert(0, os.path.basename(files[0]))
         files = self.root.tk.splitlist(event.data)
         if files:
             self.selected_files = files
@@ -158,12 +141,15 @@ class SendTab:
     
     def discover_hosts(self):
         self.send_status_var.set("Scanning for hosts on local network...")
+        self.discover_button.configure(state="disabled")  # Disable button
         def do_discover():
             hosts = discover_all_file_servers()
             self.root.after(0, lambda: self.show_host_selection(hosts))
         threading.Thread(target=do_discover, daemon=True).start()
 
     def show_host_selection(self, hosts):
+        self.discover_button.configure(state="normal")  # Re-enable button
+
         if not hosts:
             messagebox.showinfo("No Hosts Found", "No file servers found on the local network.")
             self.send_status_var.set("No hosts found.")
@@ -208,7 +194,6 @@ class SendTab:
 
             for file_path in self.selected_files:
                 dest_filename = os.path.basename(file_path)
-                # dest_filename = self.dest_filename_entry.get().strip()
 
                 # Set up progress callback
                 def progress_callback(progress):
@@ -227,7 +212,6 @@ class SendTab:
 
                 # Send the file
                 self.sender.send_file(
-                    # self.selected_file,
                     file_path,
                     host,
                     port,

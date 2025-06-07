@@ -90,24 +90,32 @@ def safe_filename(filename):
 
 def get_local_ip():
     """
-    Get the local IP address of the machine
-    
-    Returns:
-        Local IP address as string
+    Get the local IP address of the machine, independent of internet connection.
+    Returns the first non-loopback IPv4 address found.
     """
-    
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
     try:
-        # Doesn't matter if 8.8.8.8 is reachable or not, we just need a valid address
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
+        # Try to use socket.gethostbyname_ex to get all addresses
+        hostname = socket.gethostname()
+        addresses = socket.gethostbyname_ex(hostname)[2]
+        for ip in addresses:
+            if not ip.startswith("127."):
+                return ip
     except Exception:
-        ip = "127.0.0.1" # Fallback to localhost if unable to determine IP
-    finally:
+        pass
+
+    # Fallback: try to connect to a LAN broadcast address (does not require internet)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("192.168.255.255", 1))
+        ip = s.getsockname()[0]
         s.close()
-    
-    return ip
+        if not ip.startswith("127."):
+            return ip
+    except Exception:
+        pass
+
+    # As a last resort, return localhost
+    return "127.0.0.1"
 
 def discover_file_server_ip(broadcast_port=9999, timeout=2):
     """
@@ -131,7 +139,7 @@ def discover_file_server_ip(broadcast_port=9999, timeout=2):
                 break
             except socket.timeout:
                 continue
-            except Exception:
+            except Exception as e:
                 # No response, do not fallback to local IP
                 print(f"[DEBUG] Discovery attempt to {attempt} failed: {e}")
                 server_ip = None
