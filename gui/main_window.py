@@ -3,6 +3,7 @@ Main window Setup and Configuration for File Transfer GUI
 """
 
 import customtkinter as ctk
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from .send_tab import SendTab
 from .receive_tab import ReceiveTab
 
@@ -14,7 +15,8 @@ class FileTransferApp:
         ctk.set_default_color_theme("blue")
 
         # Create the main window
-        self.root = ctk.CTk()
+        # self.root = ctk.CTk()
+        self.root = TkinterDnD.Tk()  # Only if not already a Tk() instance
         self.root.title("File Transfer Tool")
         self.root.geometry("800x600")
         self.root.resizable(True, True)

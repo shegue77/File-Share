@@ -5,7 +5,15 @@ File Receiver - Handles receiving files over network
 import socket
 import threading
 import os
+import hashlib
 from utils.helpers import get_local_ip
+
+def calculate_sha256(file_path):
+    sha256 = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            sha256.update(chunk)
+    return sha256.hexdigest()
 
 class FileReceiver:
     def __init__(self):
@@ -132,6 +140,15 @@ class FileReceiver:
                         if received == filesize or progress % 25 == 0:  # Log at 25% intervals
                             self.log_callback(f"Progress for {filename}: {progress:.1f}%")
             
+            # Receive checksum
+            received_checksum = self._recv_line(client)
+            local_checksum = calculate_sha256(save_path)
+            if received_checksum == local_checksum:
+                if self.log_callback:
+                    self.log_callback(f"Checksum OK for '{filename}'")
+            else:
+                if self.log_callback:
+                    self.log_callback(f"Checksum mismatch for '{filename}'!\nExpected: {received_checksum}\nGot: {local_checksum}")
 
             if self.log_callback:
                 self.log_callback(f"File '{filename}' received successfully")

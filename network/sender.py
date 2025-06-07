@@ -4,8 +4,15 @@ File Sender - Handles sending files over network
 
 import socket
 import os
+import hashlib
 from utils.helpers import discover_file_server_ip
 
+def calculate_sha256(file_path):
+    sha256 = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            sha256.update(chunk)
+    return sha256.hexdigest()
 class FileSender:
     def __init__(self):
         pass
@@ -57,4 +64,6 @@ class FileSender:
                         progress_callback(progress)
         
         finally:
+            checksum = calculate_sha256(file_path)
+            client.sendall((checksum + '\n').encode())
             client.close()

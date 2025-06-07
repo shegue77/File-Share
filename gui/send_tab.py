@@ -2,11 +2,12 @@
 Send File Tab - UI for sending files
 """
 
+import os
+import threading
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
-import os
-import threading
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from network.sender import FileSender
 from utils.helpers import discover_file_server_ip, discover_all_file_servers
 
@@ -14,7 +15,8 @@ class SendTab:
     def __init__(self, parent, root):
         self.parent = parent
         self.root = root
-        self.selected_file = None
+        # self.selected_file = None
+        self.selected_files = []  # Store multiple selected files
         self.sender = FileSender()  # Initialize FileSender
 
         self.setup_ui()
@@ -38,6 +40,10 @@ class SendTab:
             wraplength=400,
         )
         self.file_path_label.pack(pady=5)
+
+        # Add drag-and-drop support for file selection
+        self.file_path_label.drop_target_register(DND_FILES)
+        self.file_path_label.dnd_bind('<<Drop>>', self.on_drop_files)
 
         # Browse button
         self.browse_button = ctk.CTkButton(
@@ -113,6 +119,42 @@ class SendTab:
             font=ctk.CTkFont(size=12)
         )
         self.send_status_label.pack(pady=5)
+
+    def browse_file(self):
+        # file_path = filedialog.askopenfilename(
+        #     title="Select a file to send",
+        #     filetypes=[("All Files", "*.*")]
+        # )
+        # if file_path:
+        #     self.selected_file = file_path
+        #     self.file_path_var.set(f"Selected file: {os.path.basename(file_path)}")
+        #     # Always set destination filename to the selected file's basename (with extension)
+        #     self.dest_filename_entry.delete(0, 'end')
+        #     self.dest_filename_entry.insert(0, os.path.basename(file_path))
+        file_paths = filedialog.askopenfilenames(
+        title="Select files to send",
+        filetypes=[("All Files", "*.*")]
+        )
+        if file_paths:
+            self.selected_files = file_paths
+            self.file_path_var.set(f"Selected files: {', '.join(os.path.basename(f) for f in file_paths)}")
+            # Optionally set the first file's name as default
+            self.dest_filename_entry.delete(0, 'end')
+            self.dest_filename_entry.insert(0, os.path.basename(file_paths[0]))
+
+    def on_drop_files(self, event):
+        # files = self.root.tk.splitlist(event.data)
+        # if files:
+        #     self.selected_file = files[0]
+        #     self.file_path_var.set(f"Selected file: {os.path.basename(files[0])}")
+        #     self.dest_filename_entry.delete(0, 'end')
+        #     self.dest_filename_entry.insert(0, os.path.basename(files[0]))
+        files = self.root.tk.splitlist(event.data)
+        if files:
+            self.selected_files = files
+            self.file_path_var.set(f"Selected files: {', '.join(os.path.basename(f) for f in files)}")
+            self.dest_filename_entry.delete(0, 'end')
+            self.dest_filename_entry.insert(0, os.path.basename(files[0]))
     
     def discover_hosts(self):
         self.send_status_var.set("Scanning for hosts on local network...")
@@ -140,22 +182,8 @@ class SendTab:
         else:
             self.send_status_var.set("Host selection cancelled.")
 
-
-    
-    def browse_file(self):
-        file_path = filedialog.askopenfilename(
-            title="Select a file to send",
-            filetypes=[("All Files", "*.*")]
-        )
-        if file_path:
-            self.selected_file = file_path
-            self.file_path_var.set(f"Selected file: {os.path.basename(file_path)}")
-            # Always set destination filename to the selected file's basename (with extension)
-            self.dest_filename_entry.delete(0, 'end')
-            self.dest_filename_entry.insert(0, os.path.basename(file_path))
-
     def send_file(self):
-        if not self.selected_file:
+        if not self.selected_files:
             messagebox.showerror("Error", "Please select a file to send.")
             return
 
@@ -177,38 +205,42 @@ class SendTab:
         try:
             host = self.host_entry.get().strip() or "auto"
             port = int(self.port_entry.get() or 9999)
-            dest_filename = self.dest_filename_entry.get().strip()
 
-            # Set up progress callback
-            def progress_callback(progress):
-                self.root.after(0, lambda p=progress: self.send_status_var.set(f"Sending... {p:.1f}%"))
+            for file_path in self.selected_files:
+                dest_filename = os.path.basename(file_path)
+                # dest_filename = self.dest_filename_entry.get().strip()
 
-            # Auto-discovery visual feedback
-            if host == "auto":
-                self.root.after(0, lambda: self.send_status_var.set("Discovering host on local network..."))
-                discovered_host = discover_file_server_ip()
-                if not discovered_host:
-                    self.root.after(0, lambda: self.send_status_var.set("No file server found on local network."))
-                    self.root.after(0, lambda: self.send_button.configure(state="normal"))
-                    return
-                self.root.after(0, lambda: self.send_status_var.set(f"Discovered host: {discovered_host}"))
-                host = discovered_host
+                # Set up progress callback
+                def progress_callback(progress):
+                    self.root.after(0, lambda p=progress: self.send_status_var.set(f"Sending... {p:.1f}%"))
 
-            # Send the file
-            self.sender.send_file(
-                self.selected_file,
-                host,
-                port,
-                dest_filename,
-                progress_callback
-            )
+                # Auto-discovery visual feedback
+                if host == "auto":
+                    self.root.after(0, lambda: self.send_status_var.set("Discovering host on local network..."))
+                    discovered_host = discover_file_server_ip()
+                    if not discovered_host:
+                        self.root.after(0, lambda: self.send_status_var.set("No file server found on local network."))
+                        self.root.after(0, lambda: self.send_button.configure(state="normal"))
+                        return
+                    self.root.after(0, lambda: self.send_status_var.set(f"Discovered host: {discovered_host}"))
+                    host = discovered_host
 
-            # Update UI on success
-            self.root.after(0, lambda: self.send_status_var.set("File sent successfully!"))
-            self.root.after(0, lambda: messagebox.showinfo("Success", f"File sent successfully as '{dest_filename}'"))
+                # Send the file
+                self.sender.send_file(
+                    # self.selected_file,
+                    file_path,
+                    host,
+                    port,
+                    dest_filename,
+                    progress_callback
+                )
+
+                # Update UI on success
+                self.root.after(0, lambda: self.send_status_var.set("File sent successfully!"))
+                self.root.after(0, lambda: messagebox.showinfo("Success", f"File sent successfully as '{dest_filename}'"))
 
         except Exception as e:
             self.root.after(0, lambda: self.send_status_var.set(f"Error: {str(e)}"))
-            self.root.after(0, lambda: messagebox.showerror("Error", f"Failed to send file: {str(e)}"))
+            self.root.after(0, lambda: messagebox.showerror("Error", "Failed to send file"))
         finally:
             self.root.after(0, lambda: self.send_button.configure(state="normal"))
