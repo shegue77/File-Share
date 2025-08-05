@@ -71,7 +71,7 @@ cd File-Share
 ###### You can convert the files into an .exe using the following:
 ``` bash
 pip install pyinstaller
-pyinstaller --onefile app.py
+pyinstaller --onefile main.py
 ```
 
 ---
